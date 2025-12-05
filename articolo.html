@@ -1,13 +1,72 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Articolo - Gazzetta Ufficiale</title>
+    <title>Articolo - La Gazzetta dei Ragazzi</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        .article-loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-light);
+        }
+        
+        .article-error {
+            text-align: center;
+            padding: 4rem;
+            color: #ef4444;
+        }
+        
+        .article-error i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .article-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--radius);
+            margin: 1.5rem 0;
+            box-shadow: var(--shadow);
+        }
+        
+        .article-actions {
+            display: flex;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .article-btn {
+            padding: 0.8rem 1.5rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+        
+        .article-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        
+        .article-btn.secondary {
+            background: var(--secondary-color);
+        }
+        
+        .article-btn.secondary:hover {
+            background: #475569;
+        }
+    </style>
 </head>
 <body>
     <!-- Header -->
@@ -16,7 +75,7 @@
             <nav class="navbar">
                 <a href="index.html" class="logo">
                     <i class="fas fa-newspaper"></i>
-                    <h1>Gazzetta Ufficiale</h1>
+                    <h1>La Gazzetta dei Ragazzi</h1>
                 </a>
                 <div class="nav-links">
                     <a href="index.html"><i class="fas fa-home"></i> Home</a>
@@ -34,9 +93,8 @@
         </a>
         
         <div id="article-container">
-            <!-- L'articolo verrà caricato qui via JavaScript -->
-            <div class="loading">
-                <i class="fas fa-spinner fa-spin"></i>
+            <div class="article-loading">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
                 <p>Caricamento articolo...</p>
             </div>
         </div>
@@ -47,7 +105,7 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h3><i class="fas fa-newspaper"></i> Gazzetta Ufficiale</h3>
+                    <h3><i class="fas fa-newspaper"></i> La Gazzetta dei Ragazzi</h3>
                     <p>Articoli pubblicati direttamente via Telegram Bot</p>
                     <p>© 2024 Tutti i diritti riservati</p>
                 </div>
@@ -58,11 +116,14 @@
                         <i class="fas fa-arrow-up"></i> Torna su
                     </a>
                 </div>
+                <div class="footer-section">
+                    <h4>Statistiche</h4>
+                    <p id="article-stats">Caricamento...</p>
+                </div>
             </div>
         </div>
     </footer>
 
-    <!-- Script per articolo singolo -->
     <script>
         document.addEventListener('DOMContentLoaded', loadArticle);
         
@@ -75,14 +136,24 @@
             }
             
             try {
+                console.log(`Caricamento articolo: ${articleId}`);
+                
                 // Carica articolo
                 const response = await fetch(`articoli/${articleId}.json`);
+                if (!response.ok) {
+                    throw new Error('Articolo non trovato');
+                }
+                
                 const article = await response.json();
                 
                 // Incrementa visualizzazioni
-                const currentViews = parseInt(localStorage.getItem(`views_${articleId}`) || 0);
+                const viewsKey = `views_${articleId}`;
+                const currentViews = parseInt(localStorage.getItem(viewsKey) || '0');
                 const newViews = currentViews + 1;
-                localStorage.setItem(`views_${articleId}`, newViews);
+                localStorage.setItem(viewsKey, newViews);
+                
+                // Aggiorna titolo pagina
+                document.title = `${article.titolo} - La Gazzetta dei Ragazzi`;
                 
                 // Formatta data
                 const date = new Date(article.data);
@@ -132,7 +203,7 @@
                 `;
                 
                 // Aggiungi immagini se presenti
-                if (article.immagini > 0) {
+                if (article.immagini > 0 && article.immagini_files) {
                     articleHTML += `<div class="article-images">`;
                     
                     article.immagini_files.forEach((imgFile, index) => {
@@ -140,7 +211,8 @@
                             <div class="image-container">
                                 <img src="immagini/${imgFile}" 
                                      alt="Immagine ${index + 1} - ${article.titolo}"
-                                     loading="lazy">
+                                     loading="lazy"
+                                     onerror="this.style.display='none'">
                             </div>
                         `;
                     });
@@ -150,24 +222,57 @@
                 
                 articleHTML += `</div>`;
                 
+                // Aggiungi azioni
+                articleHTML += `
+                    <div class="article-actions">
+                        <a href="index.html" class="article-btn secondary">
+                            <i class="fas fa-arrow-left"></i> Torna alla lista
+                        </a>
+                        <button class="article-btn" onclick="window.print()">
+                            <i class="fas fa-print"></i> Stampa articolo
+                        </button>
+                        <button class="article-btn" onclick="shareArticle('${article.titolo}', '${window.location.href}')">
+                            <i class="fas fa-share-alt"></i> Condividi
+                        </button>
+                    </div>
+                `;
+                
                 // Inserisci nell'HTML
                 document.getElementById('article-container').innerHTML = articleHTML;
                 
-                // Aggiorna titolo pagina
-                document.title = `${article.titolo} - Gazzetta Ufficiale`;
+                // Aggiorna statistiche footer
+                document.getElementById('article-stats').textContent = 
+                    `${article.parole} parole • ${article.immagini || 0} immagini`;
                 
             } catch (error) {
                 console.error('Errore caricamento articolo:', error);
                 document.getElementById('article-container').innerHTML = `
-                    <div class="empty-state">
+                    <div class="article-error">
                         <i class="fas fa-exclamation-triangle"></i>
                         <h3>Articolo non trovato</h3>
                         <p>L'articolo potrebbe essere stato eliminato o spostato.</p>
-                        <a href="index.html" class="back-btn" style="margin-top: 1rem;">
-                            <i class="fas fa-arrow-left"></i> Torna agli articoli
-                        </a>
+                        <p><small>ID: ${articleId}</small></p>
+                        <div class="article-actions" style="margin-top: 2rem;">
+                            <a href="index.html" class="article-btn">
+                                <i class="fas fa-arrow-left"></i> Torna agli articoli
+                            </a>
+                        </div>
                     </div>
                 `;
+            }
+        }
+        
+        function shareArticle(title, url) {
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    text: `Leggi "${title}" su La Gazzetta dei Ragazzi`,
+                    url: url
+                });
+            } else {
+                // Fallback per browser che non supportano Web Share API
+                navigator.clipboard.writeText(url);
+                alert('Link copiato negli appunti!');
             }
         }
     </script>
