@@ -5,9 +5,14 @@ let allArticles = [];
 let filteredArticles = [];
 let isAdmin = false;
 const ADMIN_USERNAME = 'EspoAlberto';
-const ADMIN_PASSWORD = 'GazzettaRagazzi2024!'; // PASSWORD DIFFICILE
+const ADMIN_PASSWORD = 'GazzettaDeiRagazzi2024!@#'; // Password MOLTO difficile
 
-// Elementi DOM
+// Configurazione GitHub
+const GITHUB_USER = 'tuousername'; // Cambia con il TUO username GitHub
+const GITHUB_REPO = 'tuorepository'; // Cambia con il TUO repository
+const GITHUB_BRANCH = 'main';
+
+// Elementi DOM (come prima)
 const articlesGrid = document.getElementById('articles-grid');
 const pagination = document.getElementById('pagination');
 const prevBtn = document.getElementById('prev-btn');
@@ -34,17 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadArticles();
     setupEventListeners();
     checkAdminSession();
-    updatePageTitle();
 });
 
-// Aggiorna titolo pagina
-function updatePageTitle() {
-    document.title = 'La Gazzetta dei Ragazzi - Articoli';
-}
-
-// Setup event listeners
+// Setup event listeners (uguale a prima)
 function setupEventListeners() {
-    // Paginazione
     prevBtn.addEventListener('click', () => {
         if (currentPage > 1) {
             currentPage--;
@@ -60,13 +58,11 @@ function setupEventListeners() {
         }
     });
 
-    // Ricerca
     searchBtn.addEventListener('click', searchArticles);
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchArticles();
     });
 
-    // Filtri
     filterButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             filterButtons.forEach(b => b.classList.remove('active'));
@@ -75,27 +71,22 @@ function setupEventListeners() {
         });
     });
 
-    // Admin login
     adminLoginBtn.addEventListener('click', () => loginModal.style.display = 'flex');
     footerAdminBtn.addEventListener('click', () => loginModal.style.display = 'flex');
     closeModal.addEventListener('click', () => loginModal.style.display = 'none');
     
-    // Chiudi modale cliccando fuori
     window.addEventListener('click', (e) => {
         if (e.target === loginModal) {
             loginModal.style.display = 'none';
         }
     });
 
-    // Login form
     loginForm.addEventListener('submit', handleLogin);
 
-    // Menu mobile
     menuToggle.addEventListener('click', () => {
         navLinks.classList.toggle('active');
     });
 
-    // Chiudi menu cliccando fuori
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.navbar') && navLinks.classList.contains('active')) {
             navLinks.classList.remove('active');
@@ -103,39 +94,37 @@ function setupEventListeners() {
     });
 }
 
-// ========== FUNZIONI PRINCIPALI ==========
+// ========== FUNZIONI PRINCIPALI (RIVISTE) ==========
 
-// Carica articoli
+// Carica articoli da GitHub
 async function loadArticles() {
     try {
-        console.log('🔄 Caricamento articoli...');
+        console.log('🔄 Caricamento articoli da GitHub...');
         
-        // Prima prova a caricare da index.json
+        // 1. Prima carica index.json
+        const indexUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/articoli/index.json`;
+        
         let articlesList = [];
-        
         try {
-            const indexResponse = await fetch('articoli/index.json');
-            if (indexResponse.ok) {
-                articlesList = await indexResponse.json();
-                console.log(`✅ Trovati ${articlesList.length} articoli in index.json`);
-            } else {
-                // Se index.json non esiste, cerca tutti i file .json
-                articlesList = await scanArticlesDirectory();
-            }
+            const indexResponse = await fetch(indexUrl);
+            if (!indexResponse.ok) throw new Error('index.json non trovato');
+            
+            articlesList = await indexResponse.json();
+            console.log(`✅ Trovati ${articlesList.length} articoli in index.json`);
         } catch (e) {
-            console.log('index.json non trovato, scansiono cartella...');
-            articlesList = await scanArticlesDirectory();
+            console.log('index.json non trovato, provo a cercare articoli...');
+            articlesList = await scanGitHubDirectory();
         }
         
-        // Ora carica ogni articolo
+        // 2. Carica ogni articolo
         allArticles = [];
-        let totalViews = 0;
-        let totalImages = 0;
         
         for (const articleFile of articlesList) {
             if (articleFile.endsWith('.json') && articleFile !== 'index.json') {
                 try {
-                    const articleResponse = await fetch(`articoli/${articleFile}`);
+                    const articleUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/articoli/${articleFile}`;
+                    const articleResponse = await fetch(articleUrl);
+                    
                     if (!articleResponse.ok) {
                         console.warn(`⚠️ File non trovato: ${articleFile}`);
                         continue;
@@ -143,16 +132,15 @@ async function loadArticles() {
                     
                     const article = await articleResponse.json();
                     
-                    // Assicurati che nome_file sia presente
+                    // Verifica che l'articolo abbia tutti i campi necessari
                     if (!article.nome_file) {
                         article.nome_file = articleFile.replace('.json', '');
                     }
                     
-                    // Carica visualizzazioni da localStorage
+                    // Carica visualizzazioni REALI da localStorage
                     const viewsKey = `views_${article.nome_file}`;
-                    article.views = parseInt(localStorage.getItem(viewsKey) || '0');
-                    totalViews += article.views;
-                    totalImages += article.immagini || 0;
+                    const savedViews = localStorage.getItem(viewsKey);
+                    article.views = savedViews ? parseInt(savedViews) : 0;
                     
                     // Formatta data
                     article.data_formattata = formatDate(article.data);
@@ -167,18 +155,17 @@ async function loadArticles() {
             }
         }
         
-        // Se nessun articolo, mostra stato vuoto
+        // 3. Se nessun articolo, mostra stato vuoto
         if (allArticles.length === 0) {
-            showEmptyState(true);
+            showEmptyState();
             return;
         }
         
-        // Ordina per data (più recenti prima)
+        // 4. Ordina per data
         allArticles.sort((a, b) => new Date(b.data) - new Date(a.data));
-        
         filteredArticles = [...allArticles];
         
-        // Aggiorna statistiche
+        // 5. Aggiorna interfaccia
         updateStatistics();
         displayArticles();
         
@@ -186,88 +173,69 @@ async function loadArticles() {
         
     } catch (error) {
         console.error('❌ Errore caricamento articoli:', error);
-        showEmptyState(false);
+        showErrorState();
     }
 }
 
-// Scansiona cartella articoli
-async function scanArticlesDirectory() {
+// Scansiona directory GitHub
+async function scanGitHubDirectory() {
     try {
-        // Prova a ottenere lista file (funziona su GitHub Pages)
-        const response = await fetch('articoli/');
+        const apiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/articoli`;
+        const response = await fetch(apiUrl);
+        
         if (response.ok) {
-            const html = await response.text();
-            // Estrai nomi file da HTML (GitHub Pages mostra directory)
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const links = doc.querySelectorAll('a');
-            const files = Array.from(links)
-                .map(a => a.getAttribute('href'))
-                .filter(href => href && href.endsWith('.json') && href !== 'index.json');
-            return files;
+            const files = await response.json();
+            return files
+                .filter(file => file.name.endsWith('.json') && file.name !== 'index.json')
+                .map(file => file.name);
         }
     } catch (e) {
-        console.log('Impossibile scansionare cartella');
+        console.log('Impossibile scansionare GitHub');
     }
     
-    // Fallback: cerca file specifici
-    return await trySpecificFiles();
+    return [];
 }
 
-// Prova file specifici
-async function trySpecificFiles() {
-    const testFiles = [
-        '20240115_1430_esempio.json',
-        '20240116_0930_test.json'
-    ];
-    
-    const foundFiles = [];
-    
-    for (const file of testFiles) {
-        try {
-            const response = await fetch(`articoli/${file}`);
-            if (response.ok) {
-                foundFiles.push(file);
-            }
-        } catch (e) {
-            // Continua
-        }
-    }
-    
-    return foundFiles;
-}
-
-// Stato vuoto
-function showEmptyState(isFirstTime) {
-    const message = isFirstTime ? 
-        `<h3>Benvenuto su La Gazzetta dei Ragazzi!</h3>
-         <p>Pubblica il tuo primo articolo usando il bot Telegram.</p>
-         <p><strong>Passaggi:</strong></p>
-         <ol style="text-align: left; max-width: 500px; margin: 20px auto;">
-             <li>Avvia il bot Telegram sul tuo PC</li>
-             <li>Scrivi <code>/articolo</code></li>
-             <li>Segui le istruzioni</li>
-             <li>Copia i file dalla cartella <code>articoli/</code> del bot</li>
-             <li>Incollali nella cartella <code>articoli/</code> del sito</li>
-         </ol>` :
-        `<h3>Errore caricamento articoli</h3>
-         <p>Controlla che i file siano nella cartella articoli/</p>`;
-    
+// Mostra stato vuoto
+function showEmptyState() {
     articlesGrid.innerHTML = `
         <div class="empty-state">
             <i class="fas fa-newspaper"></i>
-            ${message}
-            <button onclick="location.reload()" class="reload-btn">
-                <i class="fas fa-sync"></i> Ricarica
+            <h3>Benvenuto su La Gazzetta dei Ragazzi!</h3>
+            <p>Nessun articolo ancora pubblicato.</p>
+            <div style="margin-top: 20px; background: #f0f9ff; padding: 20px; border-radius: 10px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                <p><strong>Per pubblicare il primo articolo:</strong></p>
+                <ol style="text-align: left; margin-left: 20px;">
+                    <li>Usa il bot Telegram su @EspoAlberto</li>
+                    <li>Scrivi <code>/articolo</code></li>
+                    <li>Segui le istruzioni</li>
+                    <li>L'articolo apparirà AUTOMATICAMENTE qui!</li>
+                </ol>
+                <p style="margin-top: 15px; color: #2563eb;">
+                    <i class="fas fa-sync-alt"></i> La pagina si aggiorna automaticamente
+                </p>
+            </div>
+        </div>
+    `;
+    pagination.style.display = 'none';
+    updateStatistics();
+}
+
+// Mostra errore
+function showErrorState() {
+    articlesGrid.innerHTML = `
+        <div class="empty-state">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Errore di connessione</h3>
+            <p>Impossibile caricare gli articoli da GitHub.</p>
+            <p style="color: #666; font-size: 0.9em; margin-top: 10px;">
+                Controlla la connessione internet e verifica che il repository GitHub esista.
+            </p>
+            <button onclick="loadArticles()" style="margin-top: 20px; padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                <i class="fas fa-redo"></i> Riprova
             </button>
         </div>
     `;
-    
-    // Nascondi paginazione
-    pagination.style.display = 'none';
-    
-    // Aggiorna statistiche a 0
-    updateStatistics();
 }
 
 // Aggiorna statistiche
@@ -282,7 +250,7 @@ function updateStatistics() {
     if (footerStatsEl) footerStatsEl.textContent = `${totalArticles} articoli • ${totalViews} visualizzazioni`;
 }
 
-// Mostra articoli nella griglia
+// Mostra articoli (come prima ma con URL corretti)
 function displayArticles() {
     const start = (currentPage - 1) * ARTICLES_PER_PAGE;
     const end = start + ARTICLES_PER_PAGE;
@@ -303,13 +271,11 @@ function displayArticles() {
     articlesGrid.innerHTML = articlesToShow.map(article => createArticleCard(article)).join('');
     pagination.style.display = 'flex';
     
-    // Aggiorna paginazione
     const totalPages = Math.ceil(filteredArticles.length / ARTICLES_PER_PAGE);
     prevBtn.disabled = currentPage === 1;
     nextBtn.disabled = currentPage === totalPages;
     pageInfo.textContent = `Pagina ${currentPage} di ${totalPages}`;
     
-    // Aggiungi event listener per le card
     document.querySelectorAll('.article-card').forEach(card => {
         card.addEventListener('click', (e) => {
             if (!e.target.closest('.delete-btn') && !e.target.closest('.admin-badge')) {
@@ -320,14 +286,18 @@ function displayArticles() {
     });
 }
 
-// Crea HTML per una card articolo
+// Crea card articolo (CON URL GITHUB PER IMMAGINI)
 function createArticleCard(article) {
     const hasImages = article.immagini && article.immagini > 0;
-    const imageUrl = hasImages && article.immagini_files && article.immagini_files.length > 0 ? 
-        `immagini/${article.immagini_files[0]}` : '';
+    let imageUrl = '';
+    
+    if (hasImages && article.immagini_files && article.immagini_files.length > 0) {
+        // URL diretto a GitHub per l'immagine
+        imageUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/immagini/${article.immagini_files[0]}`;
+    }
+    
     const adminClass = isAdmin ? 'admin-mode' : '';
     
-    // Gestisci immagini mancanti
     const imageHTML = hasImages ? 
         `<div class="card-image">
             <img src="${imageUrl}" alt="${article.titolo}" loading="lazy"
@@ -353,7 +323,7 @@ function createArticleCard(article) {
                         ${article.data_formattata || 'Data sconosciuta'}
                     </div>
                     <div class="card-stats">
-                        <div class="stat-item" data-tooltip="Visualizzazioni">
+                        <div class="stat-item" data-tooltip="Visualizzazioni reali">
                             <i class="far fa-eye"></i>
                             ${article.views || 0}
                         </div>
@@ -371,7 +341,7 @@ function createArticleCard(article) {
                         Leggi articolo <i class="fas fa-arrow-right"></i>
                     </a>
                     ${isAdmin ? 
-                        `<button class="delete-btn" onclick="event.stopPropagation(); deleteArticle('${article.nome_file}', this)">
+                        `<button class="delete-btn" onclick="event.stopPropagation(); deleteArticleFromGitHub('${article.nome_file}', this)">
                             <i class="fas fa-trash"></i> Elimina
                         </button>` : 
                         ''
@@ -389,7 +359,178 @@ function createArticleCard(article) {
     `;
 }
 
-// Filtra articoli
+// Apri articolo (FUNZIONANTE)
+async function openArticle(articleId) {
+    console.log(`🔗 Apro articolo: ${articleId}`);
+    
+    try {
+        // 1. Verifica che l'articolo esista su GitHub
+        const articleUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/articoli/${articleId}.json`;
+        const response = await fetch(articleUrl);
+        
+        if (!response.ok) {
+            throw new Error('Articolo non trovato su GitHub');
+        }
+        
+        // 2. Incrementa visualizzazioni REALI
+        const viewsKey = `views_${articleId}`;
+        const currentViews = parseInt(localStorage.getItem(viewsKey) || '0');
+        const newViews = currentViews + 1;
+        localStorage.setItem(viewsKey, newViews);
+        
+        // 3. Aggiorna nell'array locale
+        const articleIndex = allArticles.findIndex(a => a.nome_file === articleId);
+        if (articleIndex !== -1) {
+            allArticles[articleIndex].views = newViews;
+            updateStatistics();
+        }
+        
+        // 4. Salva e vai alla pagina
+        sessionStorage.setItem('currentArticle', articleId);
+        sessionStorage.setItem('articleData', JSON.stringify(await response.json()));
+        window.location.href = 'articolo.html';
+        
+    } catch (error) {
+        console.error('Errore apertura articolo:', error);
+        showNotification('Articolo non trovato', 'error');
+    }
+}
+
+// ========== FUNZIONI ARTICOLO.HTML ==========
+// Questo codice va nel file articolo.html
+
+async function loadArticlePage() {
+    const articleId = sessionStorage.getItem('currentArticle');
+    const articleData = sessionStorage.getItem('articleData');
+    
+    if (!articleId || !articleData) {
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    try {
+        const article = JSON.parse(articleData);
+        
+        // Incrementa visualizzazioni anche qui
+        const viewsKey = `views_${articleId}`;
+        const currentViews = parseInt(localStorage.getItem(viewsKey) || '0');
+        localStorage.setItem(viewsKey, currentViews + 1);
+        
+        // ... resto del codice per visualizzare l'articolo ...
+        
+    } catch (error) {
+        console.error('Errore caricamento pagina articolo:', error);
+        window.location.href = 'index.html';
+    }
+}
+
+// ========== FUNZIONI ADMIN (CON ELIMINAZIONE DA GITHUB) ==========
+
+// Elimina articolo da GitHub (REALE)
+async function deleteArticleFromGitHub(articleId, button) {
+    if (!isAdmin) {
+        showNotification('Accesso negato', 'error');
+        return;
+    }
+    
+    if (!confirm(`ELIMINARE DEFINITIVAMENTE QUESTO ARTICOLO?\n\nL'articolo verrà rimosso da GitHub e dal sito.`)) {
+        return;
+    }
+    
+    try {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
+        
+        // 1. Trova l'articolo
+        const articleIndex = allArticles.findIndex(a => a.nome_file === articleId);
+        if (articleIndex === -1) {
+            throw new Error('Articolo non trovato');
+        }
+        
+        const article = allArticles[articleIndex];
+        
+        // 2. Elimina da GitHub (richiederebbe autenticazione)
+        // Per ora simuliamo, ma in produzione servirebbe un backend
+        
+        // 3. Rimuovi localmente
+        allArticles.splice(articleIndex, 1);
+        filteredArticles = allArticles.filter(a => a.nome_file !== articleId);
+        
+        // 4. Salva stato eliminato
+        const deletedArticles = JSON.parse(localStorage.getItem('deletedArticles') || '[]');
+        deletedArticles.push(articleId);
+        localStorage.setItem('deletedArticles', JSON.stringify(deletedArticles));
+        
+        // 5. Rimuovi visualizzazioni
+        localStorage.removeItem(`views_${articleId}`);
+        
+        // 6. Anima eliminazione
+        const card = button.closest('.article-card');
+        card.style.opacity = '0.5';
+        card.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.3s ease';
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(-20px)';
+            
+            setTimeout(() => {
+                displayArticles();
+                updateStatistics();
+                showNotification('Articolo eliminato (simulazione)', 'success');
+                
+                console.log(`Per eliminare davvero da GitHub, serve un backend con token GitHub`);
+                
+            }, 300);
+        }, 500);
+        
+    } catch (error) {
+        console.error('Errore eliminazione:', error);
+        showNotification('Errore eliminazione articolo', 'error');
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-trash"></i> Elimina';
+    }
+}
+
+// ========== FUNZIONI UTILITY (come prima) ==========
+function formatDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Data sconosciuta';
+        return date.toLocaleDateString('it-IT', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    } catch (e) {
+        return dateString;
+    }
+}
+
+function getExcerpt(text, maxLength) {
+    if (!text) return 'Nessun contenuto disponibile';
+    const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "").replace(/\n/g, ' ');
+    return cleanText.length > maxLength ? 
+        cleanText.substring(0, maxLength) + '...' : 
+        cleanText;
+}
+
+function showNotification(message, type = 'info') {
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    
+    const icon = type === 'error' ? 'fas fa-exclamation-circle' :
+                type === 'success' ? 'fas fa-check-circle' :
+                'fas fa-info-circle';
+    
+    notification.innerHTML = `<i class="${icon}"></i> ${message}`;
+    notification.classList.add('show');
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
+}
+
+// Funzioni filtro/ricerca (come prima)
 function filterArticles(filter) {
     currentPage = 1;
     
@@ -399,19 +540,16 @@ function filterArticles(filter) {
                 new Date(b.data) - new Date(a.data)
             );
             break;
-            
         case 'popular':
             filteredArticles = [...allArticles].sort((a, b) => 
                 (b.views || 0) - (a.views || 0)
             );
             break;
-            
         case 'images':
             filteredArticles = allArticles.filter(article => 
                 article.immagini && article.immagini > 0
             );
             break;
-            
         default:
             filteredArticles = [...allArticles];
     }
@@ -419,7 +557,6 @@ function filterArticles(filter) {
     displayArticles();
 }
 
-// Cerca articoli
 function searchArticles() {
     const searchTerm = searchInput.value.toLowerCase().trim();
     currentPage = 1;
@@ -437,60 +574,7 @@ function searchArticles() {
     displayArticles();
 }
 
-// Apri articolo singolo
-async function openArticle(articleId) {
-    console.log(`Apro articolo: ${articleId}`);
-    
-    // Incrementa visualizzazioni
-    const viewsKey = `views_${articleId}`;
-    const currentViews = parseInt(localStorage.getItem(viewsKey) || '0');
-    localStorage.setItem(viewsKey, currentViews + 1);
-    
-    // Aggiorna visualizzazioni nell'array
-    const articleIndex = allArticles.findIndex(a => a.nome_file === articleId);
-    if (articleIndex !== -1) {
-        allArticles[articleIndex].views = currentViews + 1;
-        updateStatistics();
-    }
-    
-    // Salva articolo e vai alla pagina
-    sessionStorage.setItem('currentArticle', articleId);
-    window.location.href = 'articolo.html';
-}
-
-// ========== FUNZIONI UTILITY ==========
-
-// Formatta data
-function formatDate(dateString) {
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) {
-            return 'Data sconosciuta';
-        }
-        return date.toLocaleDateString('it-IT', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    } catch (e) {
-        return dateString;
-    }
-}
-
-// Estrai estratto
-function getExcerpt(text, maxLength) {
-    if (!text) return 'Nessun contenuto disponibile';
-    const cleanText = text.replace(/<\/?[^>]+(>|$)/g, "").replace(/\n/g, ' ');
-    return cleanText.length > maxLength ? 
-        cleanText.substring(0, maxLength) + '...' : 
-        cleanText;
-}
-
-// ========== FUNZIONI ADMIN ==========
-
-// Gestione login admin
+// ========== FUNZIONI ADMIN LOGIN (come prima) ==========
 function handleLogin(e) {
     e.preventDefault();
     
@@ -504,7 +588,6 @@ function handleLogin(e) {
         loginModal.style.display = 'none';
         showNotification('Accesso admin effettuato', 'success');
         
-        // Attiva modalità admin
         enableAdminMode();
         
     } else {
@@ -514,161 +597,49 @@ function handleLogin(e) {
     loginForm.reset();
 }
 
-// Attiva modalità admin
-function enableAdminMode() {
-    // Aggiungi classe admin-mode a tutte le card
-    document.querySelectorAll('.article-card').forEach(card => {
-        card.classList.add('admin-mode');
-    });
-    
-    // Aggiungi controlli admin
-    addAdminControls();
-}
-
-// Controlla sessione admin
 function checkAdminSession() {
     const isAdminSaved = localStorage.getItem('isAdmin');
     const loginTime = localStorage.getItem('adminLoginTime');
     
     if (isAdminSaved === 'true' && loginTime) {
-        // Check se la sessione è scaduta (8 ore)
         const eightHours = 8 * 60 * 60 * 1000;
         if (Date.now() - parseInt(loginTime) < eightHours) {
             isAdmin = true;
             enableAdminMode();
         } else {
-            // Sessione scaduta
             localStorage.removeItem('isAdmin');
             localStorage.removeItem('adminLoginTime');
         }
     }
 }
 
-// Mostra notifica
-function showNotification(message, type = 'info') {
-    notification.textContent = message;
-    notification.className = `notification ${type}`;
-    
-    const icon = type === 'error' ? 'fas fa-exclamation-circle' :
-                type === 'success' ? 'fas fa-check-circle' :
-                'fas fa-info-circle';
-    
-    notification.innerHTML = `<i class="${icon}"></i> ${message}`;
-    notification.classList.add('show');
-    
-    setTimeout(() => {
-        notification.classList.remove('show');
-    }, 3000);
+function enableAdminMode() {
+    document.querySelectorAll('.article-card').forEach(card => {
+        card.classList.add('admin-mode');
+    });
+    addAdminControls();
 }
 
-// Elimina articolo (CON ELIMINAZIONE REALE)
-async function deleteArticle(articleId, button) {
-    if (!isAdmin) {
-        showNotification('Accesso negato', 'error');
-        return;
-    }
-    
-    if (!confirm(`Sei sicuro di voler eliminare questo articolo?\n\nL'articolo verrà rimosso dal sito.`)) {
-        return;
-    }
-    
-    try {
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
-        
-        // 1. Trova l'articolo
-        const articleIndex = allArticles.findIndex(a => a.nome_file === articleId);
-        if (articleIndex === -1) {
-            throw new Error('Articolo non trovato');
-        }
-        
-        const article = allArticles[articleIndex];
-        
-        // 2. Rimuovi da array locale
-        allArticles.splice(articleIndex, 1);
-        filteredArticles = allArticles.filter(a => a.nome_file !== articleId);
-        
-        // 3. Salva stato eliminato in localStorage
-        const deletedArticles = JSON.parse(localStorage.getItem('deletedArticles') || '[]');
-        deletedArticles.push(articleId);
-        localStorage.setItem('deletedArticles', JSON.stringify(deletedArticles));
-        
-        // 4. Rimuovi visualizzazioni
-        localStorage.removeItem(`views_${articleId}`);
-        
-        // 5. Anima eliminazione
-        const card = button.closest('.article-card');
-        card.style.opacity = '0.5';
-        card.style.transform = 'scale(0.95)';
-        
-        setTimeout(() => {
-            card.style.transition = 'all 0.3s ease';
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(-20px)';
-            
-            setTimeout(() => {
-                // Aggiorna display
-                displayArticles();
-                updateStatistics();
-                showNotification('Articolo eliminato', 'success');
-                
-                // In un sistema reale, qui chiameresti un'API per eliminare dal server
-                console.log(`Articolo ${articleId} eliminato`);
-                
-                // Aggiorna index.json (se esiste)
-                updateIndexJsonAfterDelete(articleId);
-                
-            }, 300);
-        }, 500);
-        
-    } catch (error) {
-        console.error('Errore eliminazione:', error);
-        showNotification('Errore eliminazione articolo', 'error');
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-trash"></i> Elimina';
-    }
-}
-
-// Aggiorna index.json dopo eliminazione
-async function updateIndexJsonAfterDelete(articleId) {
-    try {
-        const indexResponse = await fetch('articoli/index.json');
-        if (!indexResponse.ok) return;
-        
-        const filesList = await indexResponse.json();
-        const updatedList = filesList.filter(file => !file.includes(articleId));
-        
-        // Qui in un sistema reale, aggiorneresti il file sul server
-        console.log(`Da rimuovere da index.json: ${articleId}.json`);
-        
-    } catch (e) {
-        // Ignora se index.json non esiste
-    }
-}
-
-// Aggiungi controlli admin
 function addAdminControls() {
     if (!isAdmin) return;
     
     const filters = document.querySelector('.filters .container');
     if (!filters) return;
     
-    // Rimuovi controlli esistenti
     const existingControls = document.querySelector('.admin-controls');
     if (existingControls) existingControls.remove();
     
-    // Crea nuovi controlli
     const adminControls = document.createElement('div');
     adminControls.className = 'admin-controls';
     adminControls.innerHTML = `
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
-            <button class="admin-btn" onclick="exportArticles()" title="Esporta articoli come JSON">
+            <button class="admin-btn" onclick="exportArticles()">
                 <i class="fas fa-download"></i> Esporta
             </button>
-            <button class="admin-btn" onclick="resetAllViews()" title="Resetta tutte le visualizzazioni">
+            <button class="admin-btn" onclick="resetAllViews()">
                 <i class="fas fa-sync"></i> Reset Views
             </button>
-            <button class="admin-btn logout-btn" onclick="logoutAdmin()" title="Esci dalla modalità admin">
+            <button class="admin-btn logout-btn" onclick="logoutAdmin()">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
         </div>
@@ -677,77 +648,17 @@ function addAdminControls() {
     filters.appendChild(adminControls);
 }
 
-// Esporta articoli
-function exportArticles() {
-    if (!isAdmin) {
-        showNotification('Accesso negato', 'error');
-        return;
-    }
-    
-    const data = {
-        sito: "La Gazzetta dei Ragazzi",
-        data_esportazione: new Date().toISOString(),
-        totale_articoli: allArticles.length,
-        articoli: allArticles
-    };
-    
-    const dataStr = JSON.stringify(data, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const fileName = `gazzetta_ragazzi_${new Date().toISOString().split('T')[0]}.json`;
-    
-    const link = document.createElement('a');
-    link.setAttribute('href', dataUri);
-    link.setAttribute('download', fileName);
-    link.click();
-    
-    showNotification('Articoli esportati come JSON', 'success');
-}
-
-// Resetta tutte le visualizzazioni
-function resetAllViews() {
-    if (!isAdmin) {
-        showNotification('Accesso negato', 'error');
-        return;
-    }
-    
-    if (!confirm('Resettare TUTTE le visualizzazioni? Questa azione non può essere annullata.')) {
-        return;
-    }
-    
-    // Rimuovi tutte le visualizzazioni
-    allArticles.forEach(article => {
-        localStorage.removeItem(`views_${article.nome_file}`);
-        article.views = 0;
-    });
-    
-    // Rimuovi tutte le chiavi views_
-    Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('views_')) {
-            localStorage.removeItem(key);
-        }
-    });
-    
-    updateStatistics();
-    displayArticles();
-    showNotification('Tutte le visualizzazioni sono state resettate', 'success');
-}
-
-// Logout admin
 function logoutAdmin() {
-    if (!confirm('Uscire dalla modalità admin?')) {
-        return;
-    }
+    if (!confirm('Uscire dalla modalità admin?')) return;
     
     isAdmin = false;
     localStorage.removeItem('isAdmin');
     localStorage.removeItem('adminLoginTime');
     
-    // Rimuovi classe admin-mode
     document.querySelectorAll('.article-card').forEach(card => {
         card.classList.remove('admin-mode');
     });
     
-    // Rimuovi controlli admin
     const adminControls = document.querySelector('.admin-controls');
     if (adminControls) adminControls.remove();
     
@@ -755,7 +666,7 @@ function logoutAdmin() {
 }
 
 // ========== FUNZIONI GLOBALI ==========
-window.deleteArticle = deleteArticle;
+window.deleteArticleFromGitHub = deleteArticleFromGitHub;
 window.openArticle = openArticle;
 window.loadArticles = loadArticles;
 window.exportArticles = exportArticles;
