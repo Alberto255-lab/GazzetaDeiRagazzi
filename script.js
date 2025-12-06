@@ -5,12 +5,11 @@ let allArticles = [];
 let filteredArticles = [];
 let isAdmin = false;
 
-// Configurazione GitHub (MODIFICA QUESTI!)
-const GITHUB_USER = 'EspoAlberto'; // TUA username GitHub
-const GITHUB_REPO = 'gazzetta-ragazzi'; // TUO repository
+const GITHUB_USER = 'Alberto255-lab'; // ← TUO USERNAME GITHUB
+const GITHUB_REPO = 'GazzettaDeiRagazzi'; // NOME REPOSITORY
 const GITHUB_BRANCH = 'main';
 
-// Credenziali Admin (MODIFICA LA PASSWORD SE VUOI)
+// Configurazione Admin
 const ADMIN_USERNAME = 'EspoAlberto';
 const ADMIN_PASSWORD = 'GazzettaDeiRagazzi2024!@#';
 
