@@ -3,24 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gazzetta Ufficiale - Articoli</title>
+    <title>La Gazzetta dei Ragazzi</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>
-    <!-- Header -->
-<!-- Cambia questa parte nel header -->
-<header class="header">
-    <div class="container">
-        <nav class="navbar">
-            <div class="logo">
-                <i class="fas fa-newspaper"></i>
-                <!-- MODIFICA QUI -->
-                <h1>La Gazzetta dei Ragazzi</h1>
-            </div>
-            <!-- resto uguale -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <i class="fas fa-newspaper"></i>
+                    <h1>La Gazzetta dei Ragazzi</h1>
+                </div>
                 <div class="nav-links">
                     <a href="#" class="active"><i class="fas fa-home"></i> Home</a>
                     <a href="#recenti"><i class="fas fa-clock"></i> Recenti</a>
@@ -34,12 +29,11 @@
         </div>
     </header>
 
-    <!-- Hero Section -->
     <section class="hero">
         <div class="container">
             <div class="hero-content">
                 <h2>Articoli Ufficiali</h2>
-                <p>Tutti gli articoli pubblicati direttamente da Telegram</p>
+                <p>Pubblicati direttamente via Telegram</p>
                 <div class="stats">
                     <div class="stat">
                         <i class="fas fa-file-alt"></i>
@@ -61,7 +55,6 @@
         </div>
     </section>
 
-    <!-- Filtri -->
     <section class="filters">
         <div class="container">
             <div class="filter-buttons">
@@ -77,17 +70,14 @@
         </div>
     </section>
 
-    <!-- Articoli Grid -->
     <main class="container">
         <div class="articles-grid" id="articles-grid">
-            <!-- Gli articoli verranno caricati qui via JavaScript -->
             <div class="loading">
                 <i class="fas fa-spinner fa-spin"></i>
                 <p>Caricamento articoli...</p>
             </div>
         </div>
 
-        <!-- Paginazione -->
         <div class="pagination" id="pagination">
             <button id="prev-btn" disabled>
                 <i class="fas fa-chevron-left"></i> Precedente
@@ -99,13 +89,12 @@
         </div>
     </main>
 
-    <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h3><i class="fas fa-newspaper"></i> Gazzetta Ufficiale</h3>
-                    <p>Articoli pubblicati direttamente via Telegram Bot</p>
+                    <h3><i class="fas fa-newspaper"></i> La Gazzetta dei Ragazzi</h3>
+                    <p>Articoli pubblicati via Telegram Bot</p>
                     <p>© 2024 Tutti i diritti riservati</p>
                 </div>
                 <div class="footer-section">
@@ -121,33 +110,29 @@
         </div>
     </footer>
 
-    <!-- Modale Admin Login -->
+    <!-- Modale Login - CAMPI VUOTI -->
     <div class="modal" id="login-modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2><i class="fas fa-lock"></i> Accesso Admin</h2>
             <form id="login-form">
                 <div class="input-group">
-                    <label for="username"><i class="fas fa-user"></i> Username</label>
-                    <input type="text" id="username" placeholder="@EspoAlberto" required>
+                    <label for="username"><i class="fas fa-user"></i> Nome Utente</label>
+                    <input type="text" id="username" placeholder="" required autocomplete="off">
                 </div>
                 <div class="input-group">
                     <label for="password"><i class="fas fa-key"></i> Password</label>
-                    <input type="password" id="password" placeholder="Password" required>
+                    <input type="password" id="password" placeholder="" required autocomplete="off">
                 </div>
                 <button type="submit" class="btn-login">
                     <i class="fas fa-sign-in-alt"></i> Accedi
                 </button>
-                <p class="modal-note">Solo @EspoAlberto può accedere</p>
             </form>
         </div>
     </div>
 
-    <!-- Notifiche -->
     <div id="notification" class="notification"></div>
 
-    <!-- Scripts -->
     <script src="script.js"></script>
-    <script src="admin.js"></script>
 </body>
 </html>
