@@ -5,11 +5,12 @@ let allArticles = [];
 let filteredArticles = [];
 let isAdmin = false;
 
-const GITHUB_USER = 'Alberto255-lab'; // ← TUO USERNAME GITHUB
-const GITHUB_REPO = 'GazzettaDeiRagazzi'; // NOME REPOSITORY
+// Configurazione GitHub (MODIFICA QUESTI!)
+const GITHUB_USER = 'Alberto255-lab'; // TUA username GitHub
+const GITHUB_REPO = 'GazzettaDeiRagazzi'; // TUO repository
 const GITHUB_BRANCH = 'main';
 
-// Configurazione Admin
+// Credenziali Admin (MODIFICA LA PASSWORD SE VUOI)
 const ADMIN_USERNAME = 'EspoAlberto';
 const ADMIN_PASSWORD = 'GazzettaDeiRagazzi2024!@#';
 
@@ -121,7 +122,7 @@ async function loadArticles() {
         showLoading();
         
         // 1. Carica index.json
-        const indexUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/articoli/index.json`;
+        const indexUrl = `https://raw.githubusercontent.com/Alberto255-lab/GazzettaDeiRagazzi/${GITHUB_BRANCH}/articoli/index.json`;
         
         let articlesList = [];
         try {
@@ -142,7 +143,7 @@ async function loadArticles() {
         for (const articleFile of articlesList) {
             if (articleFile.endsWith('.json') && articleFile !== 'index.json') {
                 try {
-                    const articleUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/articoli/${articleFile}`;
+                    const articleUrl = `https://raw.githubusercontent.com/Alberto255-lab/GazzettaDeiRagazzi/${GITHUB_BRANCH}/articoli/${articleFile}`;
                     const response = await fetch(articleUrl);
                     
                     if (!response.ok) {
@@ -298,7 +299,7 @@ function createArticleCard(article) {
     let imageUrl = '';
     
     if (hasImages && article.immagini_files && article.immagini_files.length > 0) {
-        imageUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/immagini/${article.immagini_files[0]}`;
+        imageUrl = `https://raw.githubusercontent.com/Alberto255-lab/GazzettaDeiRagazzi/${GITHUB_BRANCH}/immagini/${article.immagini_files[0]}`;
     }
     
     const adminClass = isAdmin ? 'admin-mode' : '';
