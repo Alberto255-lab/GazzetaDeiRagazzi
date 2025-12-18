@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Gazzetta dei Ragazzi</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        :root {
+            --primary: #72a4f2;
+            --accent: #ff4757;
+            --dark: #2f3542;
+            --bg: #f1f2f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--dark);
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Header Animato */
+        header {
+            text-align: center;
+            padding: 50px 20px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin: 0;
+            color: var(--primary);
+            cursor: default;
+        }
+
+        /* Container Post */
+        #news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            padding: 40px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        /* Card Post Moderno */
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-10px) rotate(1deg);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+
+        .card h2 { margin-top: 0; color: var(--primary); }
+
+        .views-tag {
+            font-size: 0.8rem;
+            color: #777;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Modalità Admin */
+        #admin-panel {
+            display: none;
+            background: #fff;
+            padding: 20px;
+            border-bottom: 3px solid var(--primary);
+            text-align: center;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: bold;
+            margin: 5px;
+        }
+
+        button:hover { transform: scale(1.1); box-shadow: 0 5px 15px rgba(114, 164, 242, 0.4); }
+
+        /* Donazioni Nascoste (Footer) */
+        footer {
+            margin-top: 50px;
+            padding: 40px;
+            text-align: center;
+            background: #e1e2e6;
+        }
+
+        .kofi-container { opacity: 0.3; transition: 0.5s; }
+        .kofi-container:hover { opacity: 1; }
+
+        /* Crediti Segreti */
+        #credits {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 50px;
+            border-radius: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="admin-panel">
+        <h3>🛠 Pannello Admin</h3>
+        <input type="text" id="postTitle" placeholder="Titolo Post">
+        <textarea id="postContent" placeholder="Contenuto..."></textarea>
+        <button onclick="addPost()">Pubblica Post</button>
+        <button onclick="localStorage.clear(); location.reload();" style="background:var(--accent)">Reset Tutto</button>
+    </div>
+
+    <header class="animate__animated animate__fadeInDown">
+        <h1>La Gazzetta dei Ragazzi</h1>
+        <p>L'informazione libera, fatta da un tredicenne</p>
+        <button onclick="toggleAdmin()">Admin Mode</button>
+    </header>
+
+    <div id="news-grid">
+        </div>
+
+    <div id="credits" class="animate__animated animate__zoomIn">
+        <h1>Creato da Alberto Esposito</h1>
+        <p>Premi 'Esc' per chiudere</p>
+    </div>
+
+    <footer>
+        <p>Se ti piace il progetto, puoi offrirmi un succo di frutta qui sotto!</p>
+        <div class="kofi-container">
+            <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
+            <script type='text/javascript'>
+                kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'X8X21H49UF');
+                kofiwidget2.draw();
+            </script>
+        </div>
+    </footer>
+
+    <script>
+        let posts = JSON.parse(localStorage.getItem('posts')) || [];
+
+        function renderPosts() {
+            const grid = document.getElementById('news-grid');
+            grid.innerHTML = '';
+            posts.forEach((post, index) => {
+                grid.innerHTML += `
+                    <div class="card animate__animated animate__fadeInUp" onclick="openPost(${index})">
+                        <h2>${post.title}</h2>
+                        <p>${post.content.substring(0, 50)}...</p>
+                        <div class="views-tag">👁 ${post.views} visualizzazioni</div>
+                        ${isAdmin ? `<button onclick="deletePost(${index}); event.stopPropagation();" style="background:red">Elimina</button>` : ''}
+                    </div>
+                `;
+            });
+        }
+
+        function addPost() {
+            const title = document.getElementById('postTitle').value;
+            const content = document.getElementById('postContent').value;
+            if(title && content) {
+                posts.push({ title, content, views: 0 });
+                saveAndRender();
+            }
+        }
+
+        function openPost(index) {
+            posts[index].views++;
+            saveAndRender();
+            alert(posts[index].title + "\n\n" + posts[index].content);
+        }
+
+        function deletePost(index) {
+            posts.splice(index, 1);
+            saveAndRender();
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('posts', JSON.stringify(posts));
+            renderPosts();
+        }
+
+        // Modalità Admin
+        let isAdmin = false;
+        function toggleAdmin() {
+            const pass = prompt("Inserisci password admin:");
+            if(pass === "GazzettaDeiRagazzi2025") { // Cambia questa password!
+                isAdmin = !isAdmin;
+                document.getElementById('admin-panel').style.display = isAdmin ? 'block' : 'none';
+                renderPosts();
+            }
+        }
+
+        // Crediti Segreti con SHIFT
+        window.addEventListener('keydown', (e) => {
+            if (e.key === "Shift") {
+                document.getElementById('credits').style.display = 'block';
+            }
+            if (e.key === "Escape") {
+                document.getElementById('credits').style.display = 'none';
+            }
+        });
+
+        renderPosts();
+    </script>
+</body>
+</html>
